@@ -1,103 +1,71 @@
-// --- NEW VERCEL API NETWORK LOGIC ---
-// Replace the old PeerJS functions with these.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>REat - Cloud V2.0</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
-// 1. Fetch data on load instead of waiting for a P2P connection
-async function fetchCloudState() {
-    try {
-        const response = await fetch('/api/getState');
-        const data = await response.json();
-        state = data;
+        :root {
+            --bg-deep: #0a0a0c; --bg-surface: #141418; --bg-card: #1c1c22; 
+            --primary: #ff6b00; --primary-glow: rgba(255, 107, 0, 0.35); 
+            --accent: #f43f5e; --success: #10b981; --warning: #f59e0b; 
+            --text-main: #f8fafc; --text-dim: #94a3b8; --border: rgba(255, 255, 255, 0.1); 
+            --glass: rgba(20, 20, 24, 0.85);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+        body { background-color: var(--bg-deep); color: var(--text-main); height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
         
-        if (isStoreRoute) {
-            renderAll();
-        } else {
-            // For Customer view
-            custMenuData = { 
-                menu: state.menuItems, cats: state.categories, tops: state.toppings, 
-                storeName: state.storeName, maxDel: state.maxDeliveries, 
-                activeDel: state.orders.filter(o => o.orderType === 'Delivery' && o.status !== 'Collected' && o.status !== 'Cancelled').length 
-            };
-            document.getElementById('custStoreNameDisplay').innerText = custMenuData.storeName;
-            renderCustomerView();
-        }
-    } catch (error) {
-        console.error("Failed to sync with cloud:", error);
-        alert("Failed to connect to the restaurant server.");
-    }
-}
+        .screen-overlay { display: none; flex-direction: column; height: 100%; width: 100%; background: var(--bg-deep); overflow-y: auto; z-index: 2000; position: fixed; top: 0; left: 0;}
+        .screen-overlay.active { display: flex; }
 
-// Automatically sync every 5 seconds (Simple polling to replace P2P socket pushes)
-setInterval(fetchCloudState, 5000);
+        /* --- CUSTOMER HUB STYLES --- */
+        #customer-hub { align-items: center; padding: 40px 20px; background: radial-gradient(circle at top, rgba(255,107,0,0.15) 0%, var(--bg-deep) 60%); text-align: center; justify-content: center;}
+        
+        /* --- CUSTOMER MENU STYLES --- */
+        #customer-menu-view { flex-direction: column; height: 100%; overflow: hidden; background: var(--bg-deep); }
+        .cust-nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; background: var(--bg-surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; flex-wrap: wrap; gap: 14px;}
+        .cust-body { display: block; padding: 24px; height: calc(100vh - 80px); overflow-y: auto; max-width: 1400px; margin: 0 auto; width: 100%; padding-bottom: 120px; }
+        .cust-menu-scroll { height: auto; overflow: visible; padding-bottom: 0; }
+        
+        .customer-category h2 { color: var(--text-main); margin: 30px 0 20px 0; font-size: 1.5rem; font-weight: 800; display:flex; align-items:center; gap:10px;}
+        .customer-category h2::before { content: ''; width: 6px; height: 24px; background: var(--primary); border-radius: 4px; }
+        .customer-items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+        .customer-item-card { background: var(--bg-card); padding: 16px; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; position: relative; }
+        .food-img-placeholder { width: 100%; height: 140px; background: linear-gradient(135deg, rgba(255,107,0,0.1), rgba(255,107,0,0.02)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; border: 1px dashed rgba(255,107,0,0.2); }
+        .customer-item-card h4 { font-size: 1.1rem; margin: 0; color: var(--text-main); }
+        .customer-item-card .price { color: var(--text-dim); font-weight: 600; font-size: 1rem; }
+        .add-btn { background: rgba(255,107,0,0.1); color: var(--primary); border: 1px solid var(--primary); padding: 8px 20px; border-radius: 12px; font-weight: 800; cursor: pointer; text-transform: uppercase; font-size: 0.85rem; margin-top: auto; align-self: flex-start; }
+        .add-btn:hover { background: var(--primary); color: white; transform: translateY(-2px); box-shadow: 0 5px 15px var(--primary-glow); }
 
-// 2. Broadcast State (Replaces PeerJS broadcast)
-async function broadcastState() {
-    // Keep local backup for speed
-    localStorage.setItem('reatState1_0', JSON.stringify(state));
-    if (isStoreRoute) renderAll(); 
+        .cart-modal-overlay { position: fixed; inset: 0; background: rgba(3, 5, 11, 0.85); backdrop-filter: blur(16px); z-index: 3000; display: none; justify-content: center; align-items: center; padding: 20px; }
+        .cart-modal-overlay.active { display: flex; }
+        
+        .cust-cart-panel { background: var(--bg-surface); border-radius: 24px; border: 1px solid var(--border); padding: 30px; display: flex; flex-direction: column; box-shadow: 0 30px 70px rgba(0,0,0,0.6); width: 100%; max-width: 500px; max-height: 90vh; }
+        .toggle-switch { display: flex; background: var(--bg-deep); border-radius: 12px; padding: 4px; margin-bottom: 16px; border: 1px solid var(--border); }
+        .toggle-btn { flex: 1; padding: 10px; border-radius: 10px; border: none; background: transparent; color: var(--text-dim); font-weight: 700; cursor: pointer; }
+        .toggle-btn.active { background: var(--primary); color: white; }
 
-    try {
-        await fetch('/api/updateState', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(state)
-        });
-    } catch (error) {
-        console.error("Failed to update cloud database:", error);
-    }
-}
+        .mobile-cart-fab { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; padding: 16px 32px; border-radius: 30px; font-weight: 800; box-shadow: 0 10px 30px var(--primary-glow); z-index: 500; cursor: pointer; align-items: center; gap: 10px; width: 90%; max-width: 400px; justify-content: space-between; border: none; font-size: 1.05rem;}
+        .mobile-cart-fab:active { transform: translateX(-50%) scale(0.95); }
 
-// 3. Submit Customer Order to Cloud
-async function submitCustomerOrder() {
-    if(!custCart.length) return alert("Your cart is empty!");
-
-    let address = custOrderMode === 'Delivery' ? document.getElementById('custDeliveryAddress').value.trim() : 'N/A';
-    if (custOrderMode === 'Delivery' && !address) return alert("Please provide a delivery address.");
-
-    const orderTotal = custCart.reduce((a,b)=>a+b.totalPrice,0);
-    const totalC = custCart.reduce((a,b)=>a+b.totalCost,0);
-    const generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
-    
-    const orderPayload = { 
-        timestamp: Date.now(), items: [...custCart], 
-        subtotal: orderTotal, totalCost: totalC, tip: 0, total: orderTotal, 
-        status: 'Pending', cashier: 'Customer App', orderType: custOrderMode, 
-        tableNumber: address, deliveryPin: generatedPin 
-    };
-
-    try {
-        const response = await fetch('/api/submitOrder', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(orderPayload)
-        });
-        const result = await response.json();
-
-        if (result.success) {
-            alert(`Order Placed! ID: #${result.orderId}`);
-            custCart = []; 
-            updateCustCartUI();
-            fetchCloudState(); // Refresh history immediately
-        }
-    } catch (error) {
-        alert("Network error. Could not place order.");
-    }
-}
-
-// Initialize on load
-document.addEventListener('DOMContentLoaded', () => {
-    isStoreRoute = window.location.pathname.includes('store.html');
-    const staffContainer = document.getElementById('staff-app-container');
-    const customerHub = document.getElementById('customer-hub');
-
-    if (isStoreRoute) {
-        if (staffContainer) staffContainer.classList.add('active');
-        fetchCloudState();
-    } else {
-        // Skip the scanner entirely and go straight to the menu
-        if (document.getElementById('customer-menu-view')) {
-            document.getElementById('customer-hub').classList.remove('active');
-            document.getElementById('customer-menu-view').classList.add('active');
-        }
-        fetchCloudState();
-    }
-});
+        /* --- STAFF APP STYLES --- */
+        #staff-app { display: none; flex: 1; flex-direction: column; overflow: hidden; width: 100%; height: 100%; }
+        header { background: var(--glass); backdrop-filter: blur(20px); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); z-index: 100; flex-wrap: wrap; gap: 14px;}
+        .header-left { display: flex; gap: 10px; align-items: center; flex: 1; min-width: 200px;}
+        .header-right { display: flex; gap: 12px; align-items: center; justify-content: flex-end; flex: 1; min-width: 200px;}
+        
+        header h1 { font-weight: 800; font-size: 1.6rem; letter-spacing: -1px; background: linear-gradient(135deg, var(--primary) 0%, #ffb84d 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; white-space: nowrap; }
+        .header-status { background: var(--bg-surface); padding: 10px 18px; border-radius: 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; justify-content: center; white-space: nowrap;}
+        
+        .master-switch { appearance: none; width: 50px; height: 26px; background: var(--accent); border-radius: 20px; position: relative; cursor: pointer; outline: none; flex-shrink: 0;}
+        .master-switch::before { content: ''; position: absolute; width: 20px; height: 20px; background: white; border-radius: 50%; top: 3px; left: 3px; transition: 0.3s; }
+        .master-switch:checked { background: var(--success); }
+        .master-switch:checked::before { transform: translateX(24px); }
