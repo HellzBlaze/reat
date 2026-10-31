@@ -1,11 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REat RMS - Staff Operations</title>
-    <!-- Tailwind CSS CDN -->
+    <title>REat RMS - Staff Operations & Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -22,10 +20,42 @@
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../css/styles.css">
-    <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 text-slate-800 dark:bg-darkbg dark:text-slate-100 font-sans min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-800 dark:bg-darkbg dark:text-slate-100 font-sans min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- STAFF AUTHENTICATION OVERLAY (REQUIRED FOR RESTAURANT DEVICE) -->
+    <div id="staff-auth-modal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-8 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-6">
+            <div class="text-center space-y-2">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-amber-500 mx-auto flex items-center justify-center text-white text-3xl font-black shadow-lg">
+                    R
+                </div>
+                <h2 class="text-2xl font-black text-slate-900 dark:text-white">REat Staff Portal</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Please sign in with your Supabase staff credentials to access the RMS system.</p>
+            </div>
+
+            <form onsubmit="handleStaffSignIn(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Staff Email</label>
+                    <input type="email" id="staff-email" required placeholder="staff@restaurant.com" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border-none text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Password</label>
+                    <input type="password" id="staff-password" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border-none text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500">
+                </div>
+                <button type="submit" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold transition shadow-lg shadow-brand-500/30">
+                    Sign In to RMS
+                </button>
+            </form>
+
+            <div class="text-center">
+                <button onclick="enableDemoMode()" class="text-xs font-semibold text-slate-400 hover:text-brand-500 underline">
+                    Bypass / Continue in Offline Demo Mode
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- HEADER NAV -->
     <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40">
@@ -37,20 +67,36 @@
                     </div>
                     <div>
                         <span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">REat RMS</span>
-                        <span id="rms-status-tag" class="text-xs px-2 py-0.5 ml-2 rounded-full font-semibold bg-emerald-100 text-emerald-700">Connecting...</span>
+                        <span id="rms-status-tag" class="text-[10px] px-2 py-0.5 ml-2 rounded-full font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">Connecting...</span>
                     </div>
                 </div>
 
-                <!-- SUB TABS -->
-                <div class="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex gap-1 text-xs font-semibold">
-                    <button onclick="switchTab('oms')" id="tab-oms" class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs">
-                        <i class="fa-solid fa-kitchen-set mr-1"></i> OMS Kitchen
+                <!-- SUB TABS & UTILITIES -->
+                <div class="flex items-center gap-3">
+                    <div class="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex gap-1 text-xs font-semibold">
+                        <button onclick="switchTab('oms')" id="tab-oms" class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs">
+                            <i class="fa-solid fa-kitchen-set mr-1"></i> Kitchen OMS
+                        </button>
+                        <button onclick="switchTab('pos')" id="tab-pos" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400">
+                            <i class="fa-solid fa-calculator mr-1"></i> Counter POS
+                        </button>
+                        <button onclick="switchTab('menu')" id="tab-menu" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400">
+                            <i class="fa-solid fa-utensils mr-1"></i> Edit Menu
+                        </button>
+                        <button onclick="switchTab('settings')" id="tab-settings" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400">
+                            <i class="fa-solid fa-gear mr-1"></i> Settings
+                        </button>
+                    </div>
+
+                    <!-- Dark Mode Toggle -->
+                    <button onclick="toggleDarkMode()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        <i class="fa-solid fa-moon dark:hidden"></i>
+                        <i class="fa-solid fa-sun hidden dark:block text-amber-400"></i>
                     </button>
-                    <button onclick="switchTab('pos')" id="tab-pos" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400">
-                        <i class="fa-solid fa-calculator mr-1"></i> POS Counter
-                    </button>
-                    <button onclick="switchTab('menu')" id="tab-menu" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400">
-                        <i class="fa-solid fa-book-open mr-1"></i> Menu Catalog
+
+                    <!-- Staff Sign Out -->
+                    <button onclick="handleStaffSignOut()" class="p-2.5 rounded-xl bg-rose-50 dark:bg-slate-800 text-rose-600 hover:bg-rose-100 transition" title="Sign Out">
+                        <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
                 </div>
             </div>
@@ -63,47 +109,43 @@
         <!-- SUB TAB 1: KITCHEN OMS KANBAN BOARD -->
         <section id="sub-oms" class="space-y-4">
             <div class="flex justify-between items-center">
-                <p class="text-xs text-slate-500"><i class="fa-solid fa-signal text-emerald-500 mr-1"></i> Realtime WebSockets Active</p>
+                <p class="text-xs text-slate-500"><i class="fa-solid fa-signal text-emerald-500 mr-1"></i> Live WebSockets Active</p>
                 <button onclick="simulateOrder()" class="px-3 py-1 text-xs font-semibold rounded-lg bg-brand-500 text-white hover:bg-brand-600 shadow">
-                    + Test Order
+                    + Test Kitchen Order
                 </button>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <!-- PENDING -->
                 <div class="bg-slate-100 dark:bg-slate-900/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
                     <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 dark:border-slate-800">
                         <h3 class="font-bold text-sm uppercase tracking-wider text-amber-500">Pending</h3>
                         <span id="count-pending" class="text-xs bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">0</span>
                     </div>
-                    <div id="col-pending" class="space-y-3 kanban-col"></div>
+                    <div id="col-pending" class="space-y-3"></div>
                 </div>
 
-                <!-- PREPARING -->
                 <div class="bg-slate-100 dark:bg-slate-900/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
                     <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 dark:border-slate-800">
                         <h3 class="font-bold text-sm uppercase tracking-wider text-blue-500">Preparing</h3>
                         <span id="count-preparing" class="text-xs bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">0</span>
                     </div>
-                    <div id="col-preparing" class="space-y-3 kanban-col"></div>
+                    <div id="col-preparing" class="space-y-3"></div>
                 </div>
 
-                <!-- READY -->
                 <div class="bg-slate-100 dark:bg-slate-900/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
                     <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 dark:border-slate-800">
                         <h3 class="font-bold text-sm uppercase tracking-wider text-emerald-500">Ready</h3>
                         <span id="count-ready" class="text-xs bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">0</span>
                     </div>
-                    <div id="col-ready" class="space-y-3 kanban-col"></div>
+                    <div id="col-ready" class="space-y-3"></div>
                 </div>
 
-                <!-- COMPLETED -->
                 <div class="bg-slate-100 dark:bg-slate-900/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
                     <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 dark:border-slate-800">
                         <h3 class="font-bold text-sm uppercase tracking-wider text-slate-400">Completed</h3>
                         <span id="count-completed" class="text-xs bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">0</span>
                     </div>
-                    <div id="col-completed" class="space-y-3 kanban-col"></div>
+                    <div id="col-completed" class="space-y-3"></div>
                 </div>
             </div>
         </section>
@@ -111,39 +153,44 @@
         <!-- SUB TAB 2: POS COUNTER -->
         <section id="sub-pos" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 space-y-4">
-                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 font-bold">POS Counter Menu</div>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white">Counter POS Quick Order</div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" id="pos-menu-grid"></div>
             </div>
 
             <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col justify-between h-[550px]">
                 <div>
-                    <h3 class="font-bold pb-3 border-b border-slate-200 dark:border-slate-700">Current Order Ticket</h3>
+                    <h3 class="font-bold pb-3 border-b border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">Current POS Ticket</h3>
                     <div id="pos-cart-items" class="py-4 space-y-3 max-h-[350px] overflow-y-auto"></div>
                 </div>
 
                 <div class="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-2">
-                    <div class="flex justify-between text-lg font-black">
+                    <div class="flex justify-between text-lg font-black text-slate-900 dark:text-white">
                         <span>Total</span>
                         <span id="pos-total">$0.00</span>
                     </div>
-                    <button onclick="submitPOSOrder()" class="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold">Submit POS Order</button>
+                    <button onclick="submitPOSOrder()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition">Send Order to Kitchen</button>
                 </div>
             </div>
         </section>
 
-        <!-- SUB TAB 3: MENU MANAGEMENT -->
-        <section id="sub-menu" class="hidden space-y-4">
+        <!-- SUB TAB 3: LIVE MENU CRUD EDITOR -->
+        <section id="sub-menu" class="hidden space-y-6">
             <div class="flex justify-between items-center">
-                <h3 class="font-bold text-lg">Menu Items Management</h3>
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white">Menu Item Editor</h3>
+                <button onclick="openAddMenuItemModal()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md">
+                    + Add New Menu Item
+                </button>
             </div>
+
             <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-50 dark:bg-slate-900 text-xs text-slate-500 uppercase border-b border-slate-200 dark:border-slate-700">
-                            <th class="p-4">Item</th>
+                        <tr class="bg-slate-50 dark:bg-slate-900/60 text-xs text-slate-500 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-700">
+                            <th class="p-4">Item Details</th>
                             <th class="p-4">Category</th>
                             <th class="p-4">Price</th>
-                            <th class="p-4">Availability</th>
+                            <th class="p-4">Stock Status</th>
+                            <th class="p-4 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="rms-menu-table-body" class="divide-y divide-slate-200 dark:divide-slate-700 text-sm"></tbody>
@@ -151,9 +198,61 @@
             </div>
         </section>
 
+        <!-- SUB TAB 4: RESTAURANT CUSTOMIZATION -->
+        <section id="sub-settings" class="hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 max-w-2xl space-y-4">
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white">Restaurant Brand & Announcement Customization</h3>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Restaurant Name</label>
+                    <input type="text" id="setting-name" value="REat" class="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border-none text-sm text-slate-900 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Hero Banner Title</label>
+                    <input type="text" id="setting-banner-title" value="Fresh Food, Instant Table Service." class="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border-none text-sm text-slate-900 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Hero Subtitle</label>
+                    <input type="text" id="setting-banner-sub" value="Select your table or takeaway options and enjoy live kitchen updates!" class="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border-none text-sm text-slate-900 dark:text-white">
+                </div>
+                <button onclick="saveRestaurantCustomization()" class="px-6 py-2.5 rounded-xl bg-brand-600 text-white font-bold text-xs">Save Customization</button>
+            </div>
+        </section>
+
     </main>
 
-    <!-- Scripts -->
+    <!-- ADD/EDIT MENU MODAL -->
+    <div id="menu-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <h3 id="modal-menu-title" class="font-bold text-lg text-slate-900 dark:text-white">Add Menu Item</h3>
+            <input type="hidden" id="edit-item-id">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Title</label>
+                <input type="text" id="item-title-input" class="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border-none text-sm text-slate-900 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Category</label>
+                <select id="item-category-input" class="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border-none text-sm text-slate-900 dark:text-white">
+                    <option value="Mains">Mains</option>
+                    <option value="Appetizers">Appetizers</option>
+                    <option value="Drinks">Drinks</option>
+                    <option value="Desserts">Desserts</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Price ($)</label>
+                <input type="number" step="0.01" id="item-price-input" class="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border-none text-sm text-slate-900 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Description</label>
+                <textarea id="item-desc-input" rows="2" class="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border-none text-sm text-slate-900 dark:text-white"></textarea>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeMenuModal()" class="flex-1 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs">Cancel</button>
+                <button onclick="saveMenuItem()" class="flex-1 py-2.5 rounded-xl bg-brand-600 text-white font-bold text-xs">Save Item</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../js/supabase-config.js"></script>
     <script src="rms.js"></script>
 </body>
