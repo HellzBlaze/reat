@@ -1,11 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REat - Order Online</title>
-    <!-- Tailwind CSS CDN -->
+    <title>REat - Digital Menu & Ordering</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -13,9 +11,7 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: {
-                            50: '#fff1f2', 100: '#ffe4e6', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c', 900: '#881337',
-                        },
+                        brand: { 50: '#fff1f2', 100: '#ffe4e6', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c', 900: '#881337' },
                         darkbg: '#0f172a'
                     }
                 }
@@ -24,10 +20,9 @@
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
-    <!-- Supabase JS Client SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 text-slate-800 dark:bg-darkbg dark:text-slate-100 font-sans min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-800 dark:bg-darkbg dark:text-slate-100 font-sans min-h-screen flex flex-col transition-colors duration-300">
 
     <!-- NAVIGATION HEADER -->
     <header class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40">
@@ -38,12 +33,19 @@
                         R
                     </div>
                     <div>
-                        <span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">REat</span>
-                        <span id="connection-status-tag" class="text-xs px-2 py-0.5 ml-2 rounded-full font-semibold bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300">Connecting...</span>
+                        <span id="site-logo-name" class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">REat</span>
+                        <span id="connection-status-tag" class="text-[10px] px-2 py-0.5 ml-2 rounded-full font-semibold bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300">Connecting...</span>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-3">
+                    <!-- Dark Mode Toggle Button -->
+                    <button onclick="toggleDarkMode()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                        <i class="fa-solid fa-moon dark:hidden text-lg"></i>
+                        <i class="fa-solid fa-sun hidden dark:block text-lg text-amber-400"></i>
+                    </button>
+
+                    <!-- Cart Toggle -->
                     <button onclick="toggleCartModal()" class="relative p-2.5 rounded-xl bg-brand-50 dark:bg-slate-800 text-brand-600 dark:text-brand-400 hover:bg-brand-100 transition">
                         <i class="fa-solid fa-basket-shopping text-lg"></i>
                         <span id="cart-badge" class="absolute -top-1 -right-1 bg-brand-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
@@ -53,17 +55,17 @@
         </div>
     </header>
 
-    <!-- MAIN BODY -->
+    <!-- MAIN CONTAINER -->
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
-        <!-- HERO BANNER -->
-        <div class="bg-gradient-to-r from-slate-900 via-brand-950 to-slate-900 text-white rounded-2xl p-6 sm:p-8 shadow-xl">
+        <!-- HERO ANNOUNCEMENT BANNER -->
+        <div id="hero-banner" class="bg-gradient-to-r from-slate-900 via-brand-950 to-slate-900 text-white rounded-2xl p-6 sm:p-8 shadow-xl">
             <span class="bg-brand-500/20 text-brand-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border border-brand-500/30">Order Online</span>
-            <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mt-2">Fresh Food, Instant Table Service.</h1>
-            <p class="text-slate-300 mt-2 text-sm sm:text-base">Browse our dynamic menu and track your order live from the kitchen!</p>
+            <h1 id="banner-title" class="text-3xl sm:text-4xl font-extrabold tracking-tight mt-2">Fresh Food, Instant Table Service.</h1>
+            <p id="banner-subtitle" class="text-slate-300 mt-2 text-sm sm:text-base">Select your table or takeaway options and enjoy live kitchen updates!</p>
         </div>
 
-        <!-- LIVE ORDER TRACKER PANEL -->
+        <!-- ACTIVE ORDER TRACKER PANEL -->
         <div id="active-order-tracker" class="hidden bg-white dark:bg-slate-800 rounded-2xl p-5 border border-brand-200 dark:border-brand-900/50 shadow-lg">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                 <div>
@@ -72,7 +74,7 @@
                         <h3 class="font-bold text-slate-900 dark:text-white">Active Order Tracker</h3>
                         <span id="tracker-order-id" class="text-xs font-mono bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">#ORD-0000</span>
                     </div>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Order updates automatically across devices</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Real-time sync enabled across devices</p>
                 </div>
                 <div id="tracker-type-display" class="text-sm font-semibold text-brand-600 dark:text-brand-400">Table #4</div>
             </div>
@@ -80,7 +82,7 @@
             <!-- Steps -->
             <div class="grid grid-cols-4 gap-2 text-center text-xs font-semibold">
                 <div id="step-pending" class="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/30">
-                    <i class="fa-solid fa-clock block text-base mb-1"></i> Received
+                    <i class="fa-solid fa-clock block text-base mb-1"></i> Pending
                 </div>
                 <div id="step-preparing" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-400">
                     <i class="fa-solid fa-fire-burner block text-base mb-1"></i> Cooking
@@ -98,7 +100,7 @@
         <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div class="relative w-full sm:w-80">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400"></i>
-                <input type="text" id="menu-search" oninput="renderCustomerMenu()" placeholder="Search dishes..." class="w-full pl-10 pr-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <input type="text" id="menu-search" oninput="renderCustomerMenu()" placeholder="Search menu..." class="w-full pl-10 pr-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white">
             </div>
 
             <div class="flex gap-2 overflow-x-auto w-full sm:w-auto pb-1" id="category-filter-container"></div>
@@ -109,19 +111,19 @@
 
     </main>
 
-    <!-- SHOPPING CART MODAL -->
+    <!-- CART MODAL -->
     <div id="cart-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-end">
         <div class="bg-white dark:bg-slate-800 w-full max-w-md h-full flex flex-col justify-between p-6 shadow-2xl">
             <div>
                 <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700">
                     <h3 class="font-bold text-lg text-slate-900 dark:text-white"><i class="fa-solid fa-basket-shopping text-brand-500 mr-2"></i> Your Basket</h3>
-                    <button onclick="toggleCartModal()" class="text-slate-400 hover:text-slate-600 text-xl"><i class="fa-solid fa-xmark"></i></button>
+                    <button onclick="toggleCartModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <div class="py-4 space-y-3 border-b border-slate-200 dark:border-slate-700">
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Dining Option / Table</label>
-                        <select id="cart-table-select" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-xl p-2.5 text-sm font-semibold">
+                        <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Dining Option / Table</label>
+                        <select id="cart-table-select" class="w-full bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white border-none rounded-xl p-2.5 text-sm font-semibold">
                             <option value="Table 1">Table 1</option>
                             <option value="Table 2">Table 2</option>
                             <option value="Table 3">Table 3</option>
@@ -131,8 +133,8 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Special Notes</label>
-                        <input type="text" id="cart-notes" placeholder="Extra spicy, allergies..." class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-xl p-2.5 text-sm">
+                        <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Special Notes</label>
+                        <input type="text" id="cart-notes" placeholder="Extra spicy, allergies..." class="w-full bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white border-none rounded-xl p-2.5 text-sm">
                     </div>
                 </div>
 
@@ -145,13 +147,12 @@
                     <span class="text-brand-600 dark:text-brand-400 text-xl" id="cart-total">$0.00</span>
                 </div>
                 <button onclick="submitCustomerOrder()" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold transition shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-paper-plane"></i> Place Order
+                    <i class="fa-solid fa-paper-plane"></i> Submit Order
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
     <script src="js/supabase-config.js"></script>
     <script src="js/customer.js"></script>
 </body>
