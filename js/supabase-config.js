@@ -1,7 +1,7 @@
 // Configuration & Client Initialization for REat RMS
 
-const SUPABASE_URL = localStorage.getItem('reat_sb_url') || 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = localStorage.getItem('reat_sb_key') || 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = localStorage.getItem('reat_sb_url') || 'https://lveucvqnlikepvualuul.supabase.co/rest/v1/';
+const SUPABASE_ANON_KEY = localStorage.getItem('reat_sb_key') || 'sb_publishable_lDLIKxHJhOIrXHLhsnkTaA_7E8Qha7n';
 
 let supabase = null;
 let isMockMode = true;
