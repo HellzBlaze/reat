@@ -1,0 +1,160 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REat RMS - Staff Operations</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#fff1f2', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c' },
+                        darkbg: '#0f172a'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/styles.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-darkbg dark:text-slate-100 font-sans min-h-screen flex flex-col">
+
+    <!-- HEADER NAV -->
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white text-xl font-black shadow-lg">
+                        R
+                    </div>
+                    <div>
+                        <span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">REat RMS</span>
+                        <span id="rms-status-tag" class="text-xs px-2 py-0.5 ml-2 rounded-full font-semibold bg-emerald-100 text-emerald-700">Connecting...</span>
+                    </div>
+                </div>
+
+                <!-- SUB TABS -->
+                <div class="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex gap-1 text-xs font-semibold">
+                    <button onclick="switchTab('oms')" id="tab-oms" class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs">
+                        <i class="fa-solid fa-kitchen-set mr-1"></i> OMS Kitchen
+                    </button>
+                    <button onclick="switchTab('pos')" id="tab-pos" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400">
+                        <i class="fa-solid fa-calculator mr-1"></i> POS Counter
+                    </button>
+                    <button onclick="switchTab('menu')" id="tab-menu" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400">
+                        <i class="fa-solid fa-book-open mr-1"></i> Menu Catalog
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN DASHBOARD CONTENT -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- SUB TAB 1: KITCHEN OMS KANBAN BOARD -->
+        <section id="sub-oms" class="space-y-4">
+            <div class="flex justify-between items-center">
+                <p class="text-xs text-slate-500"><i class="fa-solid fa-signal text-emerald-500 mr-1"></i> Realtime WebSockets Active</p>
+                <button onclick="simulateOrder()" class="px-3 py-1 text-xs font-semibold rounded-lg bg-brand-500 text-white hover:bg-brand-600 shadow">
+                    + Test Order
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- PENDING -->
+                <div class="bg-slate-100 dark:bg-slate-900/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 dark:border-slate-800">
+                        <h3 class="font-bold text-sm uppercase tracking-wider text-amber-500">Pending</h3>
+                        <span id="count-pending" class="text-xs bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">0</span>
+                    </div>
+                    <div id="col-pending" class="space-y-3 kanban-col"></div>
+                </div>
+
+                <!-- PREPARING -->
+                <div class="bg-slate-100 dark:bg-slate-900/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 dark:border-slate-800">
+                        <h3 class="font-bold text-sm uppercase tracking-wider text-blue-500">Preparing</h3>
+                        <span id="count-preparing" class="text-xs bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">0</span>
+                    </div>
+                    <div id="col-preparing" class="space-y-3 kanban-col"></div>
+                </div>
+
+                <!-- READY -->
+                <div class="bg-slate-100 dark:bg-slate-900/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 dark:border-slate-800">
+                        <h3 class="font-bold text-sm uppercase tracking-wider text-emerald-500">Ready</h3>
+                        <span id="count-ready" class="text-xs bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">0</span>
+                    </div>
+                    <div id="col-ready" class="space-y-3 kanban-col"></div>
+                </div>
+
+                <!-- COMPLETED -->
+                <div class="bg-slate-100 dark:bg-slate-900/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 dark:border-slate-800">
+                        <h3 class="font-bold text-sm uppercase tracking-wider text-slate-400">Completed</h3>
+                        <span id="count-completed" class="text-xs bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">0</span>
+                    </div>
+                    <div id="col-completed" class="space-y-3 kanban-col"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SUB TAB 2: POS COUNTER -->
+        <section id="sub-pos" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-4">
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 font-bold">POS Counter Menu</div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" id="pos-menu-grid"></div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col justify-between h-[550px]">
+                <div>
+                    <h3 class="font-bold pb-3 border-b border-slate-200 dark:border-slate-700">Current Order Ticket</h3>
+                    <div id="pos-cart-items" class="py-4 space-y-3 max-h-[350px] overflow-y-auto"></div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-2">
+                    <div class="flex justify-between text-lg font-black">
+                        <span>Total</span>
+                        <span id="pos-total">$0.00</span>
+                    </div>
+                    <button onclick="submitPOSOrder()" class="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold">Submit POS Order</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SUB TAB 3: MENU MANAGEMENT -->
+        <section id="sub-menu" class="hidden space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-lg">Menu Items Management</h3>
+            </div>
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 dark:bg-slate-900 text-xs text-slate-500 uppercase border-b border-slate-200 dark:border-slate-700">
+                            <th class="p-4">Item</th>
+                            <th class="p-4">Category</th>
+                            <th class="p-4">Price</th>
+                            <th class="p-4">Availability</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rms-menu-table-body" class="divide-y divide-slate-200 dark:divide-slate-700 text-sm"></tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Scripts -->
+    <script src="../js/supabase-config.js"></script>
+    <script src="rms.js"></script>
+</body>
+</html>
